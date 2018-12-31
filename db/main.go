@@ -1,7 +1,10 @@
 package db
 
 import (
+  "bufio"
+  "encoding/csv"
   "fmt"
+  "io"
   "log"
   "os"
   _ "github.com/lib/pq"
@@ -10,13 +13,48 @@ import (
 
 var createTablesSchema = `
 CREATE TABLE monsters (
-  name text
+  id serial primary key,
+  name text,
+  size text,
+  type text,
+  alignment text,
+  armor_class integer,
+  challenge_rating decimal,
+  experience_points integer
 );
-
-COPY monsters (name) FROM '/var/monsterlib/monsters.txt' DELIMITER ',' CSV HEADER;
 `
 
 var db *sqlx.DB
+
+func prepopulateDbFromFilePath(filePath string) {
+  fmt.Println("Prepopulating database with monsters dictionary...")
+  defer fmt.Println("Completed prepopulating database")
+
+  csvFile, _ := os.Open(filePath)
+  reader := csv.NewReader(bufio.NewReader(csvFile))
+
+  // skip first line
+  reader.Read()
+
+  // read CSV files line by line and insert monster data into Postgres
+  tx := db.MustBegin()
+  for {
+    line, err := reader.Read()
+    if err == io.EOF {
+      break
+    }
+    if err != nil {
+      log.Fatal(err)
+    }
+
+    tx.MustExec("INSERT INTO monsters (name,size,type,alignment,armor_class,challenge_rating,experience_points) VALUES ($1,$2,$3,$4,$5,$6,$7)", line[0], line[1], line[2], line[3], line[4], line[5], line[6])
+  }
+
+  err := tx.Commit()
+  if err != nil {
+    log.Fatal(err)
+  }
+}
 
 func Init() {
   fmt.Println("Initializing connection to database...")
@@ -31,6 +69,9 @@ func Init() {
   _, err = db.Query(fmt.Sprintf("SELECT 1 FROM %s LIMIT 1", os.Getenv("PG_DB")))
   if err != nil {
     db.MustExec(createTablesSchema)
+
+    // pre-populate monster database from monsters CSV file
+    prepopulateDbFromFilePath(os.Getenv("MONSTERLIB_PATH"))
   }
 }
 

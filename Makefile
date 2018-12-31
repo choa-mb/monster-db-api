@@ -6,6 +6,7 @@ export PG_DB=monsters
 export POSTGRES_PASSWORD=postgres
 export POSTGRES_USER=postgres
 export POSTGRES_DB=monsters
+export MONSTERLIB_PATH=./monsterlib/monsters.txt
 
 dev-db:
 	docker-compose up -d postgres  
