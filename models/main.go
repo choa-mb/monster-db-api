@@ -1,9 +1,7 @@
 package models
 
-import "github.com/satori/go.uuid"
-
 type Monster struct {
-  Id uuid.UUID `db:"id" json:"id"`
+  Id int `db:"id" json:"id"`
   Name string `db:"name" json:"name"`
   Size string `db:"size" json:"size"`
   Type string `db:"type" json:"type"`
